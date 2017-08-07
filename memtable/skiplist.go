@@ -2,7 +2,10 @@ package memtable
 
 import (
   "math/rand"
+  "reflect"
+  "unsafe"
 
+  "github.com/chenlanbo/leveldb"
   "github.com/chenlanbo/leveldb/util"
 )
 
@@ -20,21 +23,29 @@ func newNode(arena *util.Arena, key []byte, height int) *node{
   n := &node{}
   n.key = arena.Allocate(len(key))
   copy(n.key, key)
-  n.next = make([]*node, height)
-  for i, _ := range(n.next) {
+  hBuf := arena.Allocate(24 + 8 * height)
+  var sh *reflect.SliceHeader = (*reflect.SliceHeader)(unsafe.Pointer(&hBuf[0]))
+  sh.Len = height
+  sh.Cap = height
+  sh.Data = uintptr(unsafe.Pointer(&hBuf[24]))
+
+  n.next = *(*[]*node)(unsafe.Pointer(sh))
+
+  // Note: bulkBarrierPreWrite: unaligned arguments
+  /* for i := range(n.next) {
     n.next[i] = nil
-  }
+  } */
   return n
 }
 
 type SkipList struct {
-  comparator util.Comparator
+  comparator leveldb.Comparator
   arena *util.Arena
   head *node
   maxHeight int
 }
 
-func NewSkipList(comparator util.Comparator, arena *util.Arena) *SkipList {
+func NewSkipList(comparator leveldb.Comparator, arena *util.Arena) *SkipList {
   rand.Seed(71)
   s := &SkipList{}
   s.comparator = comparator
