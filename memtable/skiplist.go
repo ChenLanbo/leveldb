@@ -32,9 +32,9 @@ func newNode(arena *util.Arena, key []byte, height int) *node{
   n.next = *(*[]*node)(unsafe.Pointer(sh))
 
   // Note: bulkBarrierPreWrite: unaligned arguments
-  /* for i := range(n.next) {
-    n.next[i] = nil
-  } */
+  // for i := range(n.next) {
+  //   n.next[i] = nil
+  // }
   return n
 }
 
@@ -82,6 +82,25 @@ func (s *SkipList) Contains(key []byte) bool {
   }
 }
 
+func (s *SkipList) Iterator() leveldb.Iterator {
+  return &SkipListIterator{s:s, n:nil}
+}
+
+func (s *SkipList) randomHeight() int {
+  height := 1
+  for height < kMaxHeight {
+    if rand.Intn(4) != 0 {
+      break
+    }
+    height++
+  }
+  return height
+}
+
+func (s *SkipList) keyIsAfterNode(key []byte, n *node) bool {
+  return (n != nil) && (s.comparator.Compare(n.key, key) < 0)
+}
+
 func (s *SkipList) findGreaterOrEqual(key []byte) (*node, [kMaxHeight]*node) {
   var prev [kMaxHeight]*node
   x := s.head
@@ -103,19 +122,41 @@ func (s *SkipList) findGreaterOrEqual(key []byte) (*node, [kMaxHeight]*node) {
   return nil, prev
 }
 
-func (s *SkipList) keyIsAfterNode(key []byte, n *node) bool {
-  return (n != nil) && (s.comparator.Compare(n.key, key) < 0)
+func (s *SkipList) findLessThan(key []byte) *node {
+  x := head
+  l := s.maxHeight - 1
+  for {
+    y := x.next[l]
+    if y == nil || s.comparator.Compare(y.key, key) >= 0 {
+      if l == 0 {
+        return x
+      } else {
+        l--
+      }
+    } else {
+      x = y
+    }
+  }
+  panic("This should never happen.")
 }
 
-func (s *SkipList) randomHeight() int {
-  height := 1
-  for height < kMaxHeight {
-    if rand.Intn(4) != 0 {
-      break
+func (s *SkipList) findLast() *node {
+  x := s.head
+  l := s.maxHeight - 1
+  for {
+    y := x.next[l]
+      if l == 0 {
+        return x
+      } else {
+        l--
+      }
+    if y == nil {
+    } else {
+      x = y
     }
-    height++
   }
-  return height
+
+  return nil
 }
 
 type SkipListIterator struct {
@@ -138,11 +179,25 @@ func (iter *SkipListIterator) Next() {
   iter.n = iter.n.next[0]
 }
 
+func (iter *SkipListIterator) Prev() {
+  if !iter.Valid() {
+    panic("")
+  }
+  iter.n = iter.s.findLessThan(iter.n.key)
+  if iter.n == iter.s.head {
+    iter.n = nil
+  }
+}
+
 func (iter *SkipListIterator) Key() []byte {
   if !iter.Valid() {
     panic("")
   }
   return iter.n.key
+}
+
+func (iter *SkipListIterator) Value() []byte {
+  return nil
 }
 
 func (iter *SkipListIterator) Seek(key []byte) {
@@ -151,4 +206,11 @@ func (iter *SkipListIterator) Seek(key []byte) {
 
 func (iter *SkipListIterator) SeekToFirst() {
   iter.n = iter.s.head.next[0]
+}
+
+func (iter *SkipListIterator) SeekToLast() {
+  iter.n = iter.s.findLast()
+  if iter.n == iter.s.head {
+    iter.n = nil
+  }
 }

@@ -30,26 +30,48 @@ func TestInsertAndContains(t *testing.T) {
   }
 }
 
-func TestIterator(t *testing.T) {
+func TestIteratorSeekToFirst(t *testing.T) {
   s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  iter := s.Iterator()
+
+  iter.SeekToFirst()
+  if iter.Valid() {
+    t.Error("Iterator should not be valid if the skiplist is empty.")
+  }
+
   keys := []string{"a", "b", "c", "d", "e"}
   for _, key := range(keys) {
     s.Insert([]byte(key))
   }
 
-  iter := NewSkipListIterator(s)
   iter.SeekToFirst()
+  if !iter.Valid() {
+    t.Error("Iterator should be valid if the skiplist is not empty.")
+  }
   if leveldb.DefaultComparator.Compare(iter.Key(), []byte("a")) != 0 {
     t.Error("Skip list is not ordered.")
   }
+}
 
-  iter.Next()
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("b")) != 0 {
-    t.Error("Expected to get key 'b', but get", string(iter.Key()))
+func TestIteratorSeekToLast(t *testing.T) {
+  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  iter := s.Iterator()
+
+  iter.SeekToLast()
+  if iter.Valid() {
+    t.Error("Iterator should not be valid if the skiplist is empty.")
   }
 
-  iter.Seek([]byte("d"))
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("d")) != 0 {
-    t.Error("Expected to get key 'd'")
+  keys := []string{"a", "b", "c", "d", "e"}
+  for _, key := range(keys) {
+    s.Insert([]byte(key))
+  }
+
+  iter.SeekToLast()
+  if !iter.Valid() {
+    t.Error("Iterator should be valid if the skiplist is not empty.")
+  }
+  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("e")) != 0 {
+    t.Error("Skip list is not ordered.")
   }
 }
