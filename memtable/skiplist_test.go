@@ -8,15 +8,6 @@ import (
   "github.com/chenlanbo/leveldb/util"
 )
 
-func TestNewNode(t *testing.T) {
-  arena := util.NewArena()
-
-  n1 := newNode(arena, []byte("abc"), 12)
-  t.Log(n1.next[0])
-  n2 := newNode(arena, []byte("abc"), 12)
-  t.Log(n2.next[0])
-}
-
 func TestInsertAndContains(t *testing.T) {
   s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
 
@@ -45,9 +36,6 @@ func TestIteratorSeekToFirst(t *testing.T) {
   }
 
   iter.SeekToFirst()
-  if !iter.Valid() {
-    t.Error("Iterator should be valid if the skiplist is not empty.")
-  }
   if leveldb.DefaultComparator.Compare(iter.Key(), []byte("a")) != 0 {
     t.Error("Skip list is not ordered.")
   }
@@ -68,10 +56,62 @@ func TestIteratorSeekToLast(t *testing.T) {
   }
 
   iter.SeekToLast()
-  if !iter.Valid() {
-    t.Error("Iterator should be valid if the skiplist is not empty.")
-  }
   if leveldb.DefaultComparator.Compare(iter.Key(), []byte("e")) != 0 {
+    t.Error("Skip list is not ordered.")
+  }
+}
+
+func TestIteratorSeek(t *testing.T) {
+  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  iter := s.Iterator()
+
+  keys := []string{"c", "e", "f", "d", "b"}
+  for _, key := range(keys) {
+    s.Insert([]byte(key))
+  }
+
+  iter.Seek([]byte("c"))
+  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("c")) != 0 {
+    t.Error("Skiplist is not ordered.")
+  }
+
+  iter.Seek([]byte("g"))
+  if iter.Valid() {
+    t.Error("Is greater than the biggest key in the skiplist.")
+  }
+
+  iter.Seek([]byte("a"))
+  if !iter.Valid() {
+    t.Error("It's OK to be smaller than the smallest key in the skiplist.")
+  }
+}
+
+func TestIteratorPrevNext(t *testing.T) {
+  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  iter := s.Iterator()
+
+  keys := []string{"c", "e", "a", "d", "b"}
+  for _, key := range(keys) {
+    s.Insert([]byte(key))
+  }
+
+  iter.SeekToFirst()
+  iter.Next()
+  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("b")) != 0 {
+    t.Error("Skip list is not ordered.")
+  }
+  iter.Prev()
+  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("a")) != 0 {
+    t.Error("Skip list is not ordered.")
+  }
+  iter.Next()
+  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("b")) != 0 {
+    t.Error("Skip list is not ordered.")
+  }
+
+  iter.SeekToLast()
+  iter.Prev()
+  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("d")) != 0 {
     t.Error("Skip list is not ordered.")
   }
 }
