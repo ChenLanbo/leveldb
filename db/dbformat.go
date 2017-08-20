@@ -2,8 +2,6 @@ package db
 
 import (
   "encoding/binary"
-
-  "github.com/chenlanbo/leveldb"
 )
 
 // Sequence number
@@ -35,10 +33,10 @@ func ExtractValueType(internalKey []byte) ValueType {
 
 // Comparator for the interal key
 type InternalKeyComparator struct {
-  comparator leveldb.Comparator
+  comparator Comparator
 }
 
-func NewInternalKeyComparator(comparator leveldb.Comparator) InternalKeyComparator {
+func NewInternalKeyComparator(comparator Comparator) InternalKeyComparator {
   return InternalKeyComparator{comparator:comparator}
 }
 
@@ -68,7 +66,7 @@ func (c *InternalKeyComparator) FindShortestSuccessor(key []byte) []byte {
   return nil
 }
 
-func (c *InternalKeyComparator) UserComparator() leveldb.Comparator {
+func (c *InternalKeyComparator) UserComparator() Comparator {
   return c.comparator
 }
 

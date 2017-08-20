@@ -5,7 +5,7 @@ import (
   "reflect"
   "unsafe"
 
-  "github.com/chenlanbo/leveldb"
+  "github.com/chenlanbo/leveldb/db"
   "github.com/chenlanbo/leveldb/util"
 )
 
@@ -38,13 +38,13 @@ func newNode(arena *util.Arena, key []byte, height int) *node{
 }
 
 type SkipList struct {
-  comparator leveldb.Comparator
+  comparator db.Comparator
   arena *util.Arena
   head *node
   maxHeight int
 }
 
-func NewSkipList(comparator leveldb.Comparator, arena *util.Arena) *SkipList {
+func NewSkipList(comparator db.Comparator, arena *util.Arena) *SkipList {
   rand.Seed(71)
   s := &SkipList{}
   s.comparator = comparator
@@ -81,7 +81,7 @@ func (s *SkipList) Contains(key []byte) bool {
   }
 }
 
-func (s *SkipList) Iterator() leveldb.Iterator {
+func (s *SkipList) Iterator() db.Iterator {
   return &SkipListIterator{s:s, n:nil}
 }
 

@@ -5,7 +5,7 @@ import (
   "fmt"
   "encoding/binary"
 
-  "github.com/chenlanbo/leveldb"
+  "github.com/chenlanbo/leveldb/db"
 )
 
 // SSTable block
@@ -27,7 +27,7 @@ func (block *Block) NumRestarts() int {
   return int(numRestarts)
 }
 
-func (block *Block) NewIterator(comparator *leveldb.Comparator) leveldb.Iterator {
+func (block *Block) NewIterator(comparator *db.Comparator) db.Iterator {
   iter := &BlockIterator{}
   iter.data = block.data
   iter.numRestarts = block.NumRestarts()
@@ -40,13 +40,14 @@ func (block *Block) NewIterator(comparator *leveldb.Comparator) leveldb.Iterator
   return iter
 }
 
+// SSTable block iterator
 type BlockIterator struct {
   data []byte
   numRestarts int
   restartIndex int
   restartOffset int
   currentOffset int
-  comparator *leveldb.Comparator
+  comparator *db.Comparator
   key []byte
   value []byte
 }
@@ -61,13 +62,17 @@ func (iter *BlockIterator) SeekToFirst() {
 }
 
 func (iter *BlockIterator) SeekToLast() {
+  iter.seekToRestartPoint(iter.numRestarts - 1)
+  for iter.Valid() {
+    iter.parseNextKey()
+  }
 }
 
 func (iter *BlockIterator) Seek(key []byte) {
   left, right := 0, iter.numRestarts - 1
 
   for left < right {
-    mid := (left + right) / 2
+    mid := (left + right + 1) / 2
     regionOffset := iter.getRestartPoint(mid)
 
     var shared, nonShared, valueLength int64
@@ -120,6 +125,9 @@ func (iter *BlockIterator) Prev() {
 
   iter.seekToRestartPoint(iter.restartIndex)
   for iter.parseNextKey() {
+    if iter.currentOffset >= originalOffset {
+      break
+    }
   }
 }
 
@@ -205,7 +213,7 @@ func (iter *BlockIterator) decodeEntry(b []byte, shared *int64, nonShared *int64
 
 // SSTable Block builder
 type BlockBuilder struct {
-  options *leveldb.Options
+  options *db.Options
   buf *bytes.Buffer
   restartPoints []int32
   counter int
@@ -214,7 +222,7 @@ type BlockBuilder struct {
   iBuf []byte
 }
 
-func NewBlockBuilder(options *leveldb.Options) *BlockBuilder {
+func NewBlockBuilder(options *db.Options) *BlockBuilder {
   builder := &BlockBuilder{}
   builder.options = options
   builder.buf = new(bytes.Buffer)
@@ -232,7 +240,7 @@ func (builder *BlockBuilder) Reset() {
 
 func (builder *BlockBuilder) Add(key, value []byte) {
   if builder.buf.Len() != 0 && (*builder.options.Comparator).Compare(key, builder.lastKey) <= 0 {
-    panic("")
+    panic(fmt.Sprint(string(key), " ", string(builder.lastKey)))
   }
 
   shared := 0

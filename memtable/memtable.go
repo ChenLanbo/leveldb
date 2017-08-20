@@ -42,7 +42,7 @@ func (k keyComparator) FindShortestSuccessor(key []byte) []byte {
 
 // Memtable iterator
 type memTableIterator struct {
-  si leveldb.Iterator
+  si db.Iterator
   tmp []byte
 }
 
@@ -102,7 +102,7 @@ func NewMemTable(comparator db.InternalKeyComparator) *MemTable {
   return t
 }
 
-func (mem *MemTable) NewIterator() leveldb.Iterator {
+func (mem *MemTable) NewIterator() db.Iterator {
   iter := &memTableIterator{}
   iter.si = mem.table.Iterator()
   iter.tmp = make([]byte, 64)

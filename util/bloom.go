@@ -2,7 +2,7 @@ package util
 
 import (
 
-  "github.com/chenlanbo/leveldb"
+  "github.com/chenlanbo/leveldb/db"
 )
 
 type BloomFilter struct {
@@ -10,7 +10,7 @@ type BloomFilter struct {
   k int
 }
 
-func NewBloomFilter(bitsPerKey int) leveldb.FilterPolicy {
+func NewBloomFilter(bitsPerKey int) db.FilterPolicy {
   filter := BloomFilter{}
   filter.bitsPerKey = bitsPerKey
   filter.k = int(float64(bitsPerKey) * 0.69)

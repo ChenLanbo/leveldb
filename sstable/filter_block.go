@@ -3,7 +3,7 @@ package sstable
 import (
   "encoding/binary"
 
-  "github.com/chenlanbo/leveldb"
+  "github.com/chenlanbo/leveldb/db"
 )
 
 const (
@@ -12,7 +12,7 @@ const (
 )
 
 type FilterBlockBuilder struct {
-  policy leveldb.FilterPolicy
+  policy db.FilterPolicy
   keys []byte
   start []int
   tmpKeys [][]byte
@@ -20,7 +20,7 @@ type FilterBlockBuilder struct {
   result []byte
 }
 
-func NewFilterBlockBuilder(policy leveldb.FilterPolicy) *FilterBlockBuilder {
+func NewFilterBlockBuilder(policy db.FilterPolicy) *FilterBlockBuilder {
   builder := &FilterBlockBuilder{}
   builder.policy = policy
   builder.keys = make([]byte, 0)
@@ -92,14 +92,14 @@ func (b *FilterBlockBuilder) generateFilter() {
 }
 
 type FilterBlockReader struct {
-  policy leveldb.FilterPolicy
+  policy db.FilterPolicy
   data []byte
   baseLg byte
   offset int
   num int
 }
 
-func NewFilterBlockReader(policy leveldb.FilterPolicy, data []byte) *FilterBlockReader {
+func NewFilterBlockReader(policy db.FilterPolicy, data []byte) *FilterBlockReader {
   reader := &FilterBlockReader{}
   reader.policy = policy
   if len(data) > 5 {

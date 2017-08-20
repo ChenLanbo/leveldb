@@ -2,13 +2,24 @@ package sstable
 
 import (
   "bytes"
+  "fmt"
+  "math/rand"
   "testing"
 
-  "github.com/chenlanbo/leveldb"
+  "github.com/chenlanbo/leveldb/db"
+  "github.com/chenlanbo/leveldb/memtable"
+  "github.com/chenlanbo/leveldb/util"
 )
 
+func defaultOptions() *db.Options {
+  opt := &db.Options{}
+  opt.Comparator = &db.DefaultComparator
+  opt.BlockRestartInterval = 16
+  return opt
+}
+
 func TestSimpleBlockBuilder(t *testing.T) {
-  builder := NewBlockBuilder(leveldb.DefaultOptions)
+  builder := NewBlockBuilder(defaultOptions())
 
   keys := [][]byte{[]byte("a"), []byte("b"), []byte("c")}
   for _, key := range(keys) {
@@ -19,7 +30,7 @@ func TestSimpleBlockBuilder(t *testing.T) {
 }
 
 func TestSimpleBlockIterator(t *testing.T) {
-  builder := NewBlockBuilder(leveldb.DefaultOptions)
+  builder := NewBlockBuilder(defaultOptions())
 
   keys := [][]byte{[]byte("a"), []byte("b"), []byte("c")}
   for _, key := range(keys) {
@@ -27,7 +38,7 @@ func TestSimpleBlockIterator(t *testing.T) {
   }
 
   b := NewBlock(builder.Finish())
-  iter := b.NewIterator(leveldb.DefaultOptions.Comparator)
+  iter := b.NewIterator(defaultOptions().Comparator)
   if iter.Valid() {
     t.Error("Iterator should not be valid after creation.")
   }
@@ -52,3 +63,36 @@ func TestSimpleBlockIterator(t *testing.T) {
     t.Error("")
   }
 }
+
+func TestComplexBlockIterator(t *testing.T) {
+  n := 2048
+  s := memtable.NewSkipList(db.DefaultComparator, util.NewArena())
+  for i := 0; i < n; i++ {
+    s.Insert([]byte(fmt.Sprint(i)))
+  }
+
+  builder := NewBlockBuilder(defaultOptions())
+
+  sIter := memtable.NewSkipListIterator(s)
+  sIter.SeekToFirst()
+
+  for i := 0; i < n; i++ {
+    builder.Add(sIter.Key(), sIter.Key())
+    sIter.Next()
+  }
+
+  b := NewBlock(builder.Finish())
+  iter := b.NewIterator(defaultOptions().Comparator)
+
+  for i := 0; i < n; i++ {
+    k := []byte(fmt.Sprint(rand.Intn(n)))
+    iter.Seek(k)
+    if bytes.Compare(iter.Key(), k) != 0 {
+      t.Error("")
+    }
+    if bytes.Compare(iter.Value(), k) != 0 {
+      t.Error("")
+    }
+  }
+}
+

@@ -1,26 +1,25 @@
 package memtable
 
 import (
+  "fmt"
   "testing"
 
-  "github.com/chenlanbo/leveldb"
   "github.com/chenlanbo/leveldb/db"
 )
 
 func TestMemTable(t *testing.T) {
-  comparator := db.NewInternalKeyComparator(leveldb.DefaultComparator)
+  comparator := db.NewInternalKeyComparator(db.DefaultComparator)
   mem := NewMemTable(comparator)
-  mem.Add(db.SequenceNumber(1), db.TypeValue, []byte("a"), []byte("a"))
-  mem.Add(db.SequenceNumber(2), db.TypeValue, []byte("a"), []byte("a"))
-  mem.Add(db.SequenceNumber(3), db.TypeValue, []byte("a"), []byte("a"))
 
-  key := db.NewLookupKey([]byte("a"), db.SequenceNumber(4))
-
-  value, err := mem.Get(key)
-  if err != nil {
-    t.Error("")
-  }
-  if leveldb.DefaultComparator.Compare(value, []byte("a")) != 0 {
-    t.Error("")
+  for i := 1; i <= 128; i++ {
+    mem.Add(db.SequenceNumber(i), db.TypeValue, []byte("a"), []byte(fmt.Sprint(i)))
+    key := db.NewLookupKey([]byte("a"), db.SequenceNumber(i))
+    value, err := mem.Get(key)
+    if err != nil {
+      t.Error("Key 'a' should be found.")
+    }
+    if db.DefaultComparator.Compare(value, []byte(fmt.Sprint(i))) != 0 {
+      t.Error("Key 'a' should have the latest value.")
+    }
   }
 }

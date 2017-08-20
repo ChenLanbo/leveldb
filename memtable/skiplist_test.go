@@ -4,12 +4,12 @@ import (
   "math/rand"
   "testing"
 
-  "github.com/chenlanbo/leveldb"
+  "github.com/chenlanbo/leveldb/db"
   "github.com/chenlanbo/leveldb/util"
 )
 
 func TestInsertAndContains(t *testing.T) {
-  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  s := NewSkipList(db.DefaultComparator, util.NewArena())
 
   for i := 0; i < 100; i++ {
     key := make([]byte, 128)
@@ -22,7 +22,7 @@ func TestInsertAndContains(t *testing.T) {
 }
 
 func TestIteratorSeekToFirst(t *testing.T) {
-  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  s := NewSkipList(db.DefaultComparator, util.NewArena())
   iter := s.Iterator()
 
   iter.SeekToFirst()
@@ -36,13 +36,13 @@ func TestIteratorSeekToFirst(t *testing.T) {
   }
 
   iter.SeekToFirst()
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("a")) != 0 {
+  if db.DefaultComparator.Compare(iter.Key(), []byte("a")) != 0 {
     t.Error("Skip list is not ordered.")
   }
 }
 
 func TestIteratorSeekToLast(t *testing.T) {
-  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  s := NewSkipList(db.DefaultComparator, util.NewArena())
   iter := s.Iterator()
 
   iter.SeekToLast()
@@ -56,13 +56,13 @@ func TestIteratorSeekToLast(t *testing.T) {
   }
 
   iter.SeekToLast()
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("e")) != 0 {
+  if db.DefaultComparator.Compare(iter.Key(), []byte("e")) != 0 {
     t.Error("Skip list is not ordered.")
   }
 }
 
 func TestIteratorSeek(t *testing.T) {
-  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  s := NewSkipList(db.DefaultComparator, util.NewArena())
   iter := s.Iterator()
 
   keys := []string{"c", "e", "f", "d", "b"}
@@ -71,7 +71,7 @@ func TestIteratorSeek(t *testing.T) {
   }
 
   iter.Seek([]byte("c"))
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("c")) != 0 {
+  if db.DefaultComparator.Compare(iter.Key(), []byte("c")) != 0 {
     t.Error("Skiplist is not ordered.")
   }
 
@@ -87,7 +87,7 @@ func TestIteratorSeek(t *testing.T) {
 }
 
 func TestIteratorPrevNext(t *testing.T) {
-  s := NewSkipList(leveldb.DefaultComparator, util.NewArena())
+  s := NewSkipList(db.DefaultComparator, util.NewArena())
   iter := s.Iterator()
 
   keys := []string{"c", "e", "a", "d", "b"}
@@ -97,21 +97,21 @@ func TestIteratorPrevNext(t *testing.T) {
 
   iter.SeekToFirst()
   iter.Next()
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("b")) != 0 {
+  if db.DefaultComparator.Compare(iter.Key(), []byte("b")) != 0 {
     t.Error("Skip list is not ordered.")
   }
   iter.Prev()
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("a")) != 0 {
+  if db.DefaultComparator.Compare(iter.Key(), []byte("a")) != 0 {
     t.Error("Skip list is not ordered.")
   }
   iter.Next()
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("b")) != 0 {
+  if db.DefaultComparator.Compare(iter.Key(), []byte("b")) != 0 {
     t.Error("Skip list is not ordered.")
   }
 
   iter.SeekToLast()
   iter.Prev()
-  if leveldb.DefaultComparator.Compare(iter.Key(), []byte("d")) != 0 {
+  if db.DefaultComparator.Compare(iter.Key(), []byte("d")) != 0 {
     t.Error("Skip list is not ordered.")
   }
 }

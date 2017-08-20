@@ -1,8 +1,9 @@
-package leveldb
+package db
 
 import (
 )
 
+// Iterator interface
 type Iterator interface {
   Valid() bool
   SeekToFirst()
