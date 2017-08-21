@@ -27,7 +27,7 @@ func (block *Block) NumRestarts() int {
   return int(numRestarts)
 }
 
-func (block *Block) NewIterator(comparator *db.Comparator) db.Iterator {
+func (block *Block) NewIterator(comparator db.Comparator) db.Iterator {
   iter := &BlockIterator{}
   iter.data = block.data
   iter.numRestarts = block.NumRestarts()
@@ -47,7 +47,7 @@ type BlockIterator struct {
   restartIndex int
   restartOffset int
   currentOffset int
-  comparator *db.Comparator
+  comparator db.Comparator
   key []byte
   value []byte
 }
@@ -82,7 +82,7 @@ func (iter *BlockIterator) Seek(key []byte) {
       return
     }
     midKey := p[:nonShared]
-    if (*iter.comparator).Compare(midKey, key) < 0 {
+    if (iter.comparator).Compare(midKey, key) < 0 {
       left = mid
     } else {
       right = mid - 1
@@ -94,7 +94,7 @@ func (iter *BlockIterator) Seek(key []byte) {
     if !iter.parseNextKey() {
       return
     }
-    if (*iter.comparator).Compare(iter.key, key) >= 0 {
+    if (iter.comparator).Compare(iter.key, key) >= 0 {
       return
     }
   }
@@ -236,10 +236,16 @@ func NewBlockBuilder(options *db.Options) *BlockBuilder {
 }
 
 func (builder *BlockBuilder) Reset() {
+  builder.buf.Reset()
+  builder.restartPoints = builder.restartPoints[:1]
+  builder.restartPoints[0] = 0
+  builder.counter = 0
+  builder.finished = false
+  builder.lastKey = make([]byte, 0, 8)
 }
 
 func (builder *BlockBuilder) Add(key, value []byte) {
-  if builder.buf.Len() != 0 && (*builder.options.Comparator).Compare(key, builder.lastKey) <= 0 {
+  if builder.buf.Len() != 0 && (builder.options.Comparator).Compare(key, builder.lastKey) <= 0 {
     panic(fmt.Sprint(string(key), " ", string(builder.lastKey)))
   }
 
@@ -272,7 +278,7 @@ func (builder *BlockBuilder) Add(key, value []byte) {
   for _, b := range(key[shared:]) {
     builder.lastKey = append(builder.lastKey, b)
   }
-  if (*builder.options.Comparator).Compare(key, builder.lastKey) != 0 {
+  if (builder.options.Comparator).Compare(key, builder.lastKey) != 0 {
     panic("")
   }
 

@@ -45,6 +45,10 @@ func (e *env) NewAppendableFile(filename string) (db.WritableFile, error) {
   return &writableFile{filename:filename, f:f}, nil
 }
 
+func (e *env) DeleteFile(filename string) error {
+  return os.Remove(filename)
+}
+
 // File for sequential read
 type sequentialFile struct {
   filename string

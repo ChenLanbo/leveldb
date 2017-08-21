@@ -11,13 +11,6 @@ import (
   "github.com/chenlanbo/leveldb/util"
 )
 
-func defaultOptions() *db.Options {
-  opt := &db.Options{}
-  opt.Comparator = &db.DefaultComparator
-  opt.BlockRestartInterval = 16
-  return opt
-}
-
 func TestSimpleBlockBuilder(t *testing.T) {
   builder := NewBlockBuilder(defaultOptions())
 

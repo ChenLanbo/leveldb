@@ -8,6 +8,7 @@ type Env interface {
   NewRandomAccessFile(string) (RandomAccessFile, error)
   NewWritableFile(string) (WritableFile, error)
   NewAppendableFile(string) (WritableFile, error)
+  DeleteFile(string) error
 }
 
 type SequentialFile interface {
