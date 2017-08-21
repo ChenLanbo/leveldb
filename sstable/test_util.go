@@ -16,4 +16,3 @@ func defaultOptions() *db.Options {
   return options
 }
 
-

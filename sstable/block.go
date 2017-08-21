@@ -19,11 +19,12 @@ func NewBlock(data []byte) *Block {
 }
 
 func (block *Block) NumRestarts() int {
-  r := bytes.NewReader(block.data[len(block.data) - 4:])
+  /* r := bytes.NewReader(block.data[len(block.data) - 4:])
   var numRestarts int32
   if err := binary.Read(r, binary.LittleEndian, &numRestarts); err != nil {
     panic(err)
-  }
+  } */
+  numRestarts := binary.LittleEndian.Uint32(block.data[len(block.data) - 4:])
   return int(numRestarts)
 }
 
@@ -144,12 +145,14 @@ func (iter *BlockIterator) getRestartPoint(index int) int {
     panic(fmt.Sprint("Beyond restart point:", iter.numRestarts))
   }
 
+
   off := iter.restartOffset + index * 4
-  r := bytes.NewReader(iter.data[off:off+4])
+  off1 := binary.LittleEndian.Uint32(iter.data[off:off + 4])
+  /* r := bytes.NewReader(iter.data[off:off+4])
   var off1 int32
   if err := binary.Read(r, binary.LittleEndian, &off1); err != nil {
     panic(err)
-  }
+  } */
   return int(off1)
 }
 

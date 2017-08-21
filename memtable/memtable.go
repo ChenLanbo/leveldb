@@ -104,7 +104,7 @@ func NewMemTable(comparator db.InternalKeyComparator) *MemTable {
 
 func (mem *MemTable) NewIterator() db.Iterator {
   iter := &memTableIterator{}
-  iter.si = mem.table.Iterator()
+  iter.si = mem.table.NewIterator()
   iter.tmp = make([]byte, 64)
   return iter
 }
@@ -139,7 +139,7 @@ func (mem *MemTable) Add(seq db.SequenceNumber, valueType db.ValueType, key []by
 
 func (mem *MemTable) Get(key *db.LookupKey) ([]byte, error) {
   memKey := key.MemtableKey()
-  iter := mem.table.Iterator()
+  iter := mem.table.NewIterator()
   iter.Seek(memKey)
   if !iter.Valid() {
     return nil, leveldb.ErrNoFound

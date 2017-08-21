@@ -23,7 +23,7 @@ func TestInsertAndContains(t *testing.T) {
 
 func TestIteratorSeekToFirst(t *testing.T) {
   s := NewSkipList(db.DefaultComparator, util.NewArena())
-  iter := s.Iterator()
+  iter := s.NewIterator()
 
   iter.SeekToFirst()
   if iter.Valid() {
@@ -43,7 +43,7 @@ func TestIteratorSeekToFirst(t *testing.T) {
 
 func TestIteratorSeekToLast(t *testing.T) {
   s := NewSkipList(db.DefaultComparator, util.NewArena())
-  iter := s.Iterator()
+  iter := s.NewIterator()
 
   iter.SeekToLast()
   if iter.Valid() {
@@ -63,7 +63,7 @@ func TestIteratorSeekToLast(t *testing.T) {
 
 func TestIteratorSeek(t *testing.T) {
   s := NewSkipList(db.DefaultComparator, util.NewArena())
-  iter := s.Iterator()
+  iter := s.NewIterator()
 
   keys := []string{"c", "e", "f", "d", "b"}
   for _, key := range(keys) {
@@ -88,7 +88,7 @@ func TestIteratorSeek(t *testing.T) {
 
 func TestIteratorPrevNext(t *testing.T) {
   s := NewSkipList(db.DefaultComparator, util.NewArena())
-  iter := s.Iterator()
+  iter := s.NewIterator()
 
   keys := []string{"c", "e", "a", "d", "b"}
   for _, key := range(keys) {

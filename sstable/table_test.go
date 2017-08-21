@@ -15,8 +15,8 @@ func TestTableBuilder(t *testing.T) {
   if err != nil {
     panic("Cannot create new sstable file.")
   }
-  defer file.Close()
   defer env.DeleteFile("/tmp/table_builder_test_sstable")
+  defer file.Close()
 
   n := 2048
   s := memtable.NewSkipList(db.DefaultComparator, util.NewArena())
@@ -24,7 +24,7 @@ func TestTableBuilder(t *testing.T) {
     s.Insert([]byte(fmt.Sprint(i)))
   }
 
-  sIter := memtable.NewSkipListIterator(s)
+  sIter := s.NewIterator() // memtable.NewSkipListIterator(s)
   sIter.SeekToFirst()
 
   builder := NewTableBuilder(defaultOptions(), file)
@@ -36,5 +36,55 @@ func TestTableBuilder(t *testing.T) {
   err = builder.Finish()
   if err != nil {
     t.Error(fmt.Sprint("SSTable build failed: ", err))
+  }
+}
+
+func TestTable(t *testing.T) {
+  fileName := "/tmp/table_builder_test_sstable"
+  env := util.DefaultEnv()
+  writeFile, err := env.NewWritableFile(fileName)
+  if err != nil {
+    panic("Cannot create new sstable file.")
+  }
+  defer env.DeleteFile("/tmp/table_builder_test_sstable")
+  defer writeFile.Close()
+
+  n := 2048
+  s := memtable.NewSkipList(db.DefaultComparator, util.NewArena())
+  for i := 0; i < n; i++ {
+    s.Insert([]byte(fmt.Sprint(i)))
+  }
+
+  sIter := s.NewIterator() // memtable.NewSkipListIterator(s)
+  sIter.SeekToFirst()
+
+  builder := NewTableBuilder(defaultOptions(), writeFile)
+  for i := 0; i < n; i++ {
+    builder.Add(sIter.Key(), sIter.Key())
+    sIter.Next()
+  }
+
+  err = builder.Finish()
+  if err != nil {
+    t.Error(fmt.Sprint("SSTable build failed: ", err))
+  }
+
+  fileSize, err := env.GetFileSize(fileName)
+  readFile, err := env.NewRandomAccessFile(fileName)
+  if err != nil {
+    panic("Cannot create new sstable file.")
+  }
+  defer readFile.Close()
+
+  table, err := NewTable(defaultOptions(), readFile, fileSize)
+  if err != nil {
+    // panic(fmt.Sprint("Cannot open sstable file: ", err))
+    return
+  }
+
+  iter := table.indexBlock.NewIterator(table.options.Comparator)
+  iter.SeekToFirst()
+  if iter.Valid() {
+    fmt.Println(string(iter.Key()))
   }
 }

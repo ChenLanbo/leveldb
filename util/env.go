@@ -49,6 +49,14 @@ func (e *env) DeleteFile(filename string) error {
   return os.Remove(filename)
 }
 
+func (e *env) GetFileSize(filename string) (uint64, error) {
+  info, err := os.Stat(filename)
+  if err != nil {
+    return 0, err
+  }
+  return uint64(info.Size()), nil
+}
+
 // File for sequential read
 type sequentialFile struct {
   filename string

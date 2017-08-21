@@ -9,6 +9,7 @@ type Env interface {
   NewWritableFile(string) (WritableFile, error)
   NewAppendableFile(string) (WritableFile, error)
   DeleteFile(string) error
+  GetFileSize(string) (uint64, error)
 }
 
 type SequentialFile interface {

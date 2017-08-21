@@ -81,7 +81,7 @@ func (s *SkipList) Contains(key []byte) bool {
   }
 }
 
-func (s *SkipList) Iterator() db.Iterator {
+func (s *SkipList) NewIterator() db.Iterator {
   return &SkipListIterator{s:s, n:nil}
 }
 

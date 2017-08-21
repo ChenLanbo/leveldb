@@ -17,3 +17,7 @@ type Options struct {
   FilterPolicy FilterPolicy
 }
 
+type ReadOptions struct {
+  VerifyChecksums bool
+  FillCache bool
+}

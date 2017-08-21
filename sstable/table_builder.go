@@ -207,14 +207,15 @@ func (builder *TableBuilder) writeRawBlock(raw []byte, c db.CompressionType, han
   }
 
   if builder.status == nil {
-    var trailer [BlockTrailerSize]byte
+    // Write block trailer.
+    trailer := make([]byte, BlockTrailerSize)
     trailer[0] = byte(c)
     checksum := crc32.Checksum(raw, crc32.IEEETable)
     checksum = crc32.Update(checksum, crc32.IEEETable, []byte{0x1})
     binary.LittleEndian.PutUint32(trailer[1:], checksum)
-    n, err = builder.file.Write(raw)
+    n, err = builder.file.Write(trailer)
     builder.status = err
-    if n != len(raw) {
+    if n != len(trailer) {
       panic("")
     }
     if builder.status == nil {

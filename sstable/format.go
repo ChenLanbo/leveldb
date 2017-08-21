@@ -3,11 +3,15 @@ package sstable
 import (
   "encoding/binary"
   "errors"
+  "fmt"
+
+  "github.com/chenlanbo/leveldb/db"
 )
 
 const (
   BlockTrailerSize = 5
   MaxBlockHandleEncodedLength = 20
+  FooterLength = 48
   TableMagicNumber uint64 = 0xdb4775248b80fb57
 )
 
@@ -44,7 +48,7 @@ func (handle *BlockHandle) DecodeFrom(data []byte) error {
   if n <= 0 {
     return errors.New("Corrupt block handle.")
   }
-  handle.size, n = binary.Uvarint(data)
+  handle.size, n = binary.Uvarint(data[n:])
   if n <= 0 {
     return errors.New("Corrupt block handle.")
   }
@@ -56,6 +60,7 @@ type BlockContents struct {
   cachable bool
 }
 
+// SSTable footer
 type Footer struct {
   metaIndexHandle BlockHandle
   indexHandle BlockHandle
@@ -81,4 +86,52 @@ func (f *Footer) EncodeTo() []byte {
   binary.LittleEndian.PutUint32(out[t + 4:t + 8], uint32(TableMagicNumber >> 32))
 
   return out
+}
+
+func (f *Footer) DecodeFrom(data []byte) error {
+  t := int(2 * MaxBlockHandleEncodedLength)
+  magic := uint64(binary.LittleEndian.Uint32(data[t + 4:])) << 32 | uint64(binary.LittleEndian.Uint32(data[t:t + 4]))
+  if magic != TableMagicNumber {
+    return errors.New("Corrupted sstable file: bad magic number.")
+  }
+
+  err := f.metaIndexHandle.DecodeFrom(data)
+  if err != nil {
+    return err
+  }
+  _, n1 := binary.Uvarint(data)
+  _, n2 := binary.Uvarint(data[n1:])
+
+  err = f.indexHandle.DecodeFrom(data[n1 + n2:])
+  return err
+}
+
+// Read the sstable block specified by the block handle
+func ReadBlock(file db.RandomAccessFile, options *db.ReadOptions, handle *BlockHandle) ([]byte, error) {
+  buf := make([]byte, int(handle.size) + BlockTrailerSize)
+
+  n, err := file.ReadAt(buf, int64(handle.offset))
+  if err != nil {
+    return nil, err
+  }
+  if n != len(buf) {
+    return nil, errors.New("Corrupted sstable file: truncated block read.")
+  }
+
+  // TODO: add verify checksums
+  if options.VerifyChecksums {
+  }
+
+  switch db.CompressionType(buf[handle.size]) {
+  case db.NoCompression:
+    // Skip
+  case db.SnappyCompression:
+    return nil, errors.New("Unsupported snappy block.")
+  default:
+    fmt.Println(len(buf), " ", handle.size)
+    fmt.Println("BLOCK BYTES: ", buf)
+    return nil, errors.New(fmt.Sprint("Corrupted sstable file: bad block type ", buf[handle.size]))
+  }
+
+  return buf, nil
 }
