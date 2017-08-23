@@ -55,7 +55,7 @@ func TestTable(t *testing.T) {
     s.Insert([]byte(fmt.Sprint(i)))
   }
 
-  sIter := s.NewIterator() // memtable.NewSkipListIterator(s)
+  sIter := s.NewIterator()
   sIter.SeekToFirst()
 
   builder := NewTableBuilder(defaultOptions(), writeFile)
@@ -78,13 +78,72 @@ func TestTable(t *testing.T) {
 
   table, err := NewTable(defaultOptions(), readFile, fileSize)
   if err != nil {
-    // panic(fmt.Sprint("Cannot open sstable file: ", err))
+    t.Fatal(fmt.Sprint("Cannot open sstable file: ", err))
     return
   }
 
   iter := table.indexBlock.NewIterator(table.options.Comparator)
   iter.SeekToFirst()
-  if iter.Valid() {
-    fmt.Println(string(iter.Key()))
+  t.Log(string(iter.Key()))
+  for iter.Valid() {
+    iter.Next()
+    t.Log(string(iter.Key()))
+  }
+}
+
+func TestTableIterator(t *testing.T) {
+  fileName := "/tmp/table_builder_test_sstable"
+  env := util.DefaultEnv()
+  writeFile, err := env.NewWritableFile(fileName)
+  if err != nil {
+    panic("Cannot create new sstable file.")
+  }
+  defer env.DeleteFile("/tmp/table_builder_test_sstable")
+  defer writeFile.Close()
+
+  n := 2048
+  s := memtable.NewSkipList(db.DefaultComparator, util.NewArena())
+  for i := 0; i < n; i++ {
+    s.Insert([]byte(fmt.Sprint(i)))
+  }
+
+  sIter := s.NewIterator()
+  sIter.SeekToFirst()
+
+  builder := NewTableBuilder(defaultOptions(), writeFile)
+  for i := 0; i < n; i++ {
+    builder.Add(sIter.Key(), sIter.Key())
+    sIter.Next()
+  }
+
+  err = builder.Finish()
+  if err != nil {
+    t.Error(fmt.Sprint("SSTable build failed: ", err))
+  }
+
+  fileSize, err := env.GetFileSize(fileName)
+  readFile, err := env.NewRandomAccessFile(fileName)
+  if err != nil {
+    panic("Cannot create new sstable file.")
+  }
+  defer readFile.Close()
+
+  table, err := NewTable(defaultOptions(), readFile, fileSize)
+  if err != nil {
+    t.Fatal(fmt.Sprint("Cannot open sstable file: ", err))
+    return
+  }
+
+  readOptions := db.ReadOptions{}
+  cnt := 0
+  iter := table.NewIterator(&readOptions)
+  iter.SeekToFirst()
+  for iter.Valid() {
+    t.Log("Key: ", string(iter.Key()), " Value: ", string(iter.Value()))
+    cnt++
+    iter.Next()
+  }
+  if cnt != n {
+    t.Error("Iter didn't iterate all keys.")
   }
 }

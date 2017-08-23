@@ -57,7 +57,32 @@ func NewTable(options *db.Options, file db.RandomAccessFile, size uint64) (*Tabl
 }
 
 func (table *Table) NewIterator(readOptions *db.ReadOptions) db.Iterator {
-  return nil
+  indexIter := table.indexBlock.NewIterator(table.options.Comparator)
+  return newTableIterator(indexIter, table.blockReader, readOptions)
+}
+
+func (table *Table) blockReader(readOptions *db.ReadOptions, indexValue []byte) db.Iterator {
+  var block *Block = nil
+  handle := BlockHandle{}
+
+  err := handle.DecodeFrom(indexValue)
+
+  if err == nil {
+    if readOptions.FillCache {
+      // TODO: add cache
+    } else {
+      out, err := ReadBlock(table.file, readOptions, &handle)
+      if err == nil {
+        block = NewBlock(out)
+      }
+    }
+  }
+
+  if block != nil {
+    return block.NewIterator(table.options.Comparator)
+  } else {
+    return newErrorIterator(err)
+  }
 }
 
 // Parse metadata index block

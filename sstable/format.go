@@ -4,6 +4,7 @@ import (
   "encoding/binary"
   "errors"
   "fmt"
+  "hash/crc32"
 
   "github.com/chenlanbo/leveldb/db"
 )
@@ -118,8 +119,13 @@ func ReadBlock(file db.RandomAccessFile, options *db.ReadOptions, handle *BlockH
     return nil, errors.New("Corrupted sstable file: truncated block read.")
   }
 
-  // TODO: add verify checksums
   if options.VerifyChecksums {
+    // TODO: add verify checksums
+    checksum := crc32.Checksum(buf[:int(handle.size) + 1], crc32.IEEETable)
+    expected := binary.LittleEndian.Uint32(buf[int(handle.size) + 1:])
+    if checksum != expected {
+      panic(fmt.Sprint("Checksum mismatch: ", checksum, " ", expected))
+    }
   }
 
   switch db.CompressionType(buf[handle.size]) {
@@ -133,5 +139,5 @@ func ReadBlock(file db.RandomAccessFile, options *db.ReadOptions, handle *BlockH
     return nil, errors.New(fmt.Sprint("Corrupted sstable file: bad block type ", buf[handle.size]))
   }
 
-  return buf, nil
+  return buf[:int(handle.size)], nil
 }
