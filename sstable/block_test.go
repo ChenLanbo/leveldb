@@ -22,6 +22,39 @@ func TestSimpleBlockBuilder(t *testing.T) {
   _ = builder.Finish()
 }
 
+func TestSingleKeyBlockIterator(t *testing.T) {
+  key := []byte("a")
+  builder := NewBlockBuilder(defaultOptions())
+  builder.Add(key, key)
+
+  block := NewBlock(builder.Finish())
+  iter := block.NewIterator(defaultOptions().Comparator)
+
+  iter.SeekToFirst()
+  if bytes.Compare(iter.Key(), []byte("a")) != 0 {
+    t.Error("Should be equal to 'a'.")
+  }
+  if !iter.Valid() {
+    t.Error("Should be valid.")
+  }
+  iter.Next()
+  if iter.Valid() {
+    t.Error("Should not be valid.")
+  }
+
+  iter.SeekToLast()
+  if bytes.Compare(iter.Key(), []byte("a")) != 0 {
+    t.Error("Should be equal to 'a'.")
+  }
+  if !iter.Valid() {
+    t.Error("Should be valid.")
+  }
+  iter.Prev()
+  if iter.Valid() {
+    t.Error("Should not be valid.")
+  }
+}
+
 func TestSimpleBlockIterator(t *testing.T) {
   builder := NewBlockBuilder(defaultOptions())
 

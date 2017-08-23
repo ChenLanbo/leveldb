@@ -19,11 +19,6 @@ func NewBlock(data []byte) *Block {
 }
 
 func (block *Block) NumRestarts() int {
-  /* r := bytes.NewReader(block.data[len(block.data) - 4:])
-  var numRestarts int32
-  if err := binary.Read(r, binary.LittleEndian, &numRestarts); err != nil {
-    panic(err)
-  } */
   numRestarts := binary.LittleEndian.Uint32(block.data[len(block.data) - 4:])
   return int(numRestarts)
 }
@@ -35,6 +30,7 @@ func (block *Block) NewIterator(comparator db.Comparator) db.Iterator {
   iter.restartIndex = iter.numRestarts
   iter.restartOffset = len(block.data) - (iter.numRestarts + 1) * 4
   iter.currentOffset = iter.restartOffset
+  iter.nextOffset = iter.restartOffset
   iter.comparator = comparator
   iter.key = make([]byte, 0)
   iter.value = nil
@@ -48,6 +44,7 @@ type BlockIterator struct {
   restartIndex int
   restartOffset int
   currentOffset int
+  nextOffset int
   comparator db.Comparator
   key []byte
   value []byte
@@ -64,8 +61,7 @@ func (iter *BlockIterator) SeekToFirst() {
 
 func (iter *BlockIterator) SeekToLast() {
   iter.seekToRestartPoint(iter.numRestarts - 1)
-  for iter.Valid() {
-    iter.parseNextKey()
+  for iter.parseNextKey() && iter.nextOffset < iter.restartOffset {
   }
 }
 
@@ -145,23 +141,18 @@ func (iter *BlockIterator) getRestartPoint(index int) int {
     panic(fmt.Sprint("Beyond restart point:", iter.numRestarts))
   }
 
-
   off := iter.restartOffset + index * 4
   off1 := binary.LittleEndian.Uint32(iter.data[off:off + 4])
-  /* r := bytes.NewReader(iter.data[off:off+4])
-  var off1 int32
-  if err := binary.Read(r, binary.LittleEndian, &off1); err != nil {
-    panic(err)
-  } */
   return int(off1)
 }
 
 func (iter *BlockIterator) seekToRestartPoint(index int) {
   iter.restartIndex = index
-  iter.currentOffset = iter.getRestartPoint(index)
+  iter.nextOffset = iter.getRestartPoint(index)
 }
 
 func (iter *BlockIterator) parseNextKey() bool {
+  iter.currentOffset = iter.nextOffset
   if iter.currentOffset >= iter.restartOffset {
     iter.restartIndex = iter.numRestarts
     return false
@@ -187,7 +178,7 @@ func (iter *BlockIterator) parseNextKey() bool {
       }
     }
 
-    iter.currentOffset += (nRead + int(nonShared) + int(valueLength))
+    iter.nextOffset += (nRead + int(nonShared) + int(valueLength))
 
     return true
   }
