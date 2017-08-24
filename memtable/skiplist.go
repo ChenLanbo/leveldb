@@ -1,9 +1,10 @@
 package memtable
 
 import (
+  "fmt"
   "math/rand"
-  "reflect"
-  "unsafe"
+  // "reflect"
+  // "unsafe"
 
   "github.com/chenlanbo/leveldb/db"
   "github.com/chenlanbo/leveldb/util"
@@ -22,13 +23,14 @@ type node struct {
 func newNode(arena *util.Arena, key []byte, height int) *node{
   n := &node{}
   n.key = key
-  hBuf := arena.Allocate(24 + 8 * height)
-  var sh *reflect.SliceHeader = (*reflect.SliceHeader)(unsafe.Pointer(&hBuf[0]))
-  sh.Len = height
-  sh.Cap = height
-  sh.Data = uintptr(unsafe.Pointer(&hBuf[24]))
+  // hBuf := arena.Allocate(24 + 8 * height)
+  // var sh *reflect.SliceHeader = (*reflect.SliceHeader)(unsafe.Pointer(&hBuf[0]))
+  // sh.Len = height
+  // sh.Cap = height
+  // sh.Data = uintptr(unsafe.Pointer(&hBuf[24]))
+  // n.next = *(*[]*node)(unsafe.Pointer(sh))
 
-  n.next = *(*[]*node)(unsafe.Pointer(sh))
+  n.next = make([]*node, height)
 
   // Note: bulkBarrierPreWrite: unaligned arguments
   // for i := range(n.next) {
@@ -105,6 +107,9 @@ func (s *SkipList) findGreaterOrEqual(key []byte) (*node, [kMaxHeight]*node) {
   x := s.head
   l := s.maxHeight - 1
   for {
+    if l >= len(x.next) {
+      panic(fmt.Sprint(string(x.key), " out of range: ", l, " ", len(x.next)))
+    }
     next := x.next[l]
     if s.keyIsAfterNode(key, next) {
       x = next
@@ -144,12 +149,12 @@ func (s *SkipList) findLast() *node {
   l := s.maxHeight - 1
   for {
     y := x.next[l]
+    if y == nil {
       if l == 0 {
         return x
       } else {
         l--
       }
-    if y == nil {
     } else {
       x = y
     }

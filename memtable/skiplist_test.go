@@ -1,6 +1,7 @@
 package memtable
 
 import (
+  "fmt"
   "math/rand"
   "testing"
 
@@ -113,5 +114,46 @@ func TestIteratorPrevNext(t *testing.T) {
   iter.Prev()
   if db.DefaultComparator.Compare(iter.Key(), []byte("d")) != 0 {
     t.Error("Skip list is not ordered.")
+  }
+}
+
+func TestIteratorComplexOperations(t *testing.T) {
+  s := NewSkipList(db.DefaultComparator, util.NewArena())
+
+  n := 2048
+  for i := 0; i < n; i++ {
+    s.Insert([]byte(fmt.Sprint(i)))
+  }
+
+  iter := s.NewIterator()
+  cnt := 0
+  var prevKey []byte = nil
+
+  iter.SeekToFirst()
+  for iter.Valid() {
+    cnt++
+    if prevKey != nil && db.DefaultComparator.Compare(prevKey, iter.Key()) >= 0 {
+      t.Error("")
+    }
+    prevKey = iter.Key()
+    iter.Next()
+  }
+  if cnt != n {
+    t.Error("")
+  }
+
+  cnt = 0
+  prevKey = nil
+  iter.SeekToLast()
+  for iter.Valid() {
+    cnt++
+    if prevKey != nil && db.DefaultComparator.Compare(prevKey, iter.Key()) <= 0 {
+      t.Error("")
+    }
+    prevKey = iter.Key()
+    iter.Prev()
+  }
+  if cnt != n {
+    t.Error("")
   }
 }
