@@ -5,6 +5,11 @@ import (
   "github.com/chenlanbo/leveldb/util"
 )
 
+const (
+  BaseFileName = "/tmp/table_builder_test_sstable"
+  N = 2048
+)
+
 func defaultOptions() *db.Options {
   options := &db.Options{}
   options.Comparator = db.DefaultComparator

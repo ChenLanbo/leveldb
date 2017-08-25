@@ -81,7 +81,7 @@ func (table *Table) blockReader(readOptions *db.ReadOptions, indexValue []byte) 
   if block != nil {
     return block.NewIterator(table.options.Comparator)
   } else {
-    return newErrorIterator(err)
+    return newEmptyIterator(err)
   }
 }
 

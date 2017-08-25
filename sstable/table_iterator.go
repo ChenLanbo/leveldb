@@ -122,44 +122,44 @@ func (iter *tableIterator) initDataBlock() {
 }
 
 // Error iterator created on error.
-type errorIterator struct {
+type emptyIterator struct {
   status error
 }
 
-func newErrorIterator(status error) db.Iterator {
-  iter := &errorIterator{}
+func newEmptyIterator(status error) db.Iterator {
+  iter := &emptyIterator{}
   iter.status = status
 
   return iter
 }
 
-func (iter *errorIterator) Valid() bool {
+func (iter *emptyIterator) Valid() bool {
   return false
 }
 
-func (iter *errorIterator) SeekToFirst() {
+func (iter *emptyIterator) SeekToFirst() {
 }
 
-func (iter *errorIterator) SeekToLast() {
+func (iter *emptyIterator) SeekToLast() {
 }
 
-func (iter *errorIterator) Seek(key []byte) {
+func (iter *emptyIterator) Seek(key []byte) {
 }
 
-func (iter *errorIterator) Next() {
+func (iter *emptyIterator) Next() {
   panic("")
 }
 
-func (iter *errorIterator) Prev() {
+func (iter *emptyIterator) Prev() {
   panic("")
 }
 
-func (iter *errorIterator) Key() []byte {
+func (iter *emptyIterator) Key() []byte {
   panic("")
   return nil
 }
 
-func (iter *errorIterator) Value() []byte {
+func (iter *emptyIterator) Value() []byte {
   panic("")
   return nil
 }
