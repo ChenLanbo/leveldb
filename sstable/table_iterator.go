@@ -38,9 +38,21 @@ func (iter *tableIterator) SeekToFirst() {
 }
 
 func (iter *tableIterator) SeekToLast() {
+  iter.indexIter.SeekToLast()
+  iter.initDataBlock()
+  if iter.dataIter != nil {
+    iter.dataIter.SeekToLast()
+  }
+  iter.skipEmptyDataBlocksBackward()
 }
 
 func (iter *tableIterator) Seek(key []byte) {
+  iter.indexIter.Seek(key)
+  iter.initDataBlock()
+  if iter.dataIter != nil {
+    iter.dataIter.Seek(key)
+  }
+  iter.skipEmptyDataBlocksForward()
 }
 
 func (iter *tableIterator) Next() {
@@ -52,6 +64,11 @@ func (iter *tableIterator) Next() {
 }
 
 func (iter *tableIterator) Prev() {
+  if !iter.Valid() {
+    panic("")
+  }
+  iter.dataIter.Prev()
+  iter.skipEmptyDataBlocksBackward()
 }
 
 func (iter *tableIterator) Key() []byte {
@@ -78,6 +95,20 @@ func (iter *tableIterator) skipEmptyDataBlocksForward() {
     iter.initDataBlock()
     if iter.dataIter != nil {
       iter.dataIter.SeekToFirst()
+    }
+  }
+}
+
+func (iter *tableIterator) skipEmptyDataBlocksBackward() {
+  for iter.dataIter == nil || !iter.dataIter.Valid() {
+    if !iter.indexIter.Valid() {
+      iter.dataIter = nil
+      return
+    }
+    iter.indexIter.Prev()
+    iter.initDataBlock()
+    if iter.dataIter != nil {
+      iter.dataIter.SeekToLast()
     }
   }
 }

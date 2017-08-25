@@ -2,33 +2,40 @@ package sstable
 
 import (
   "fmt"
+  "math/rand"
   "testing"
+  "time"
 
   "github.com/chenlanbo/leveldb/db"
   "github.com/chenlanbo/leveldb/memtable"
   "github.com/chenlanbo/leveldb/util"
 )
 
+const (
+  BaseFileName = "/tmp/table_builder_test_sstable"
+  N = 2048
+)
+
 func TestTableBuilder(t *testing.T) {
+  fileName := fmt.Sprint(BaseFileName, "-", time.Now().UnixNano())
   env := util.DefaultEnv()
-  file, err := env.NewWritableFile("/tmp/table_builder_test_sstable")
+  file, err := env.NewWritableFile(fileName)
   if err != nil {
     panic("Cannot create new sstable file.")
   }
   defer env.DeleteFile("/tmp/table_builder_test_sstable")
   defer file.Close()
 
-  n := 2048
   s := memtable.NewSkipList(db.DefaultComparator, util.NewArena())
-  for i := 0; i < n; i++ {
+  for i := 0; i < N; i++ {
     s.Insert([]byte(fmt.Sprint(i)))
   }
 
-  sIter := s.NewIterator() // memtable.NewSkipListIterator(s)
+  sIter := s.NewIterator()
   sIter.SeekToFirst()
 
   builder := NewTableBuilder(defaultOptions(), file)
-  for i := 0; i < n; i++ {
+  for i := 0; i < N; i++ {
     builder.Add(sIter.Key(), sIter.Key())
     sIter.Next()
   }
@@ -49,9 +56,8 @@ func TestTable(t *testing.T) {
   defer env.DeleteFile("/tmp/table_builder_test_sstable")
   defer writeFile.Close()
 
-  n := 2048
   s := memtable.NewSkipList(db.DefaultComparator, util.NewArena())
-  for i := 0; i < n; i++ {
+  for i := 0; i < N; i++ {
     s.Insert([]byte(fmt.Sprint(i)))
   }
 
@@ -59,7 +65,7 @@ func TestTable(t *testing.T) {
   sIter.SeekToFirst()
 
   builder := NewTableBuilder(defaultOptions(), writeFile)
-  for i := 0; i < n; i++ {
+  for i := 0; i < N; i++ {
     builder.Add(sIter.Key(), sIter.Key())
     sIter.Next()
   }
@@ -84,26 +90,22 @@ func TestTable(t *testing.T) {
 
   iter := table.indexBlock.NewIterator(table.options.Comparator)
   iter.SeekToFirst()
-  t.Log(string(iter.Key()))
   for iter.Valid() {
     iter.Next()
-    t.Log(string(iter.Key()))
   }
 }
 
 func TestTableIterator(t *testing.T) {
-  fileName := "/tmp/table_builder_test_sstable"
+  fileName := fmt.Sprint(BaseFileName, "-", time.Now().UnixNano())
   env := util.DefaultEnv()
   writeFile, err := env.NewWritableFile(fileName)
   if err != nil {
     panic("Cannot create new sstable file.")
   }
-  defer env.DeleteFile("/tmp/table_builder_test_sstable")
-  defer writeFile.Close()
+  defer env.DeleteFile(fileName)
 
-  n := 2048
   s := memtable.NewSkipList(db.DefaultComparator, util.NewArena())
-  for i := 0; i < n; i++ {
+  for i := 0; i < N; i++ {
     s.Insert([]byte(fmt.Sprint(i)))
   }
 
@@ -111,7 +113,7 @@ func TestTableIterator(t *testing.T) {
   sIter.SeekToFirst()
 
   builder := NewTableBuilder(defaultOptions(), writeFile)
-  for i := 0; i < n; i++ {
+  for i := 0; i < N; i++ {
     builder.Add(sIter.Key(), sIter.Key())
     sIter.Next()
   }
@@ -119,6 +121,10 @@ func TestTableIterator(t *testing.T) {
   err = builder.Finish()
   if err != nil {
     t.Error(fmt.Sprint("SSTable build failed: ", err))
+  }
+  err = writeFile.Close()
+  if err != nil {
+    panic("")
   }
 
   fileSize, err := env.GetFileSize(fileName)
@@ -139,11 +145,32 @@ func TestTableIterator(t *testing.T) {
   iter := table.NewIterator(&readOptions)
   iter.SeekToFirst()
   for iter.Valid() {
-    t.Log("Key: ", string(iter.Key()), " Value: ", string(iter.Value()))
     cnt++
     iter.Next()
   }
-  if cnt != n {
+  if cnt != N {
     t.Error("Iter didn't iterate all keys.")
   }
+
+  cnt = 0
+  iter.SeekToLast()
+  for iter.Valid() {
+    cnt++
+    iter.Prev()
+  }
+  if cnt != N {
+    t.Error("Iter didn't iterate all keys.")
+  }
+
+  for i := 0; i < N; i++ {
+    key := []byte(fmt.Sprint(rand.Intn(N)))
+    iter.Seek(key)
+    if !iter.Valid() {
+      t.Error("Seek error.")
+    }
+    if db.DefaultComparator.Compare(iter.Key(), key) != 0 {
+      t.Error("Key does not match.")
+    }
+  }
 }
+

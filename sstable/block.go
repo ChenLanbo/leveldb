@@ -122,7 +122,7 @@ func (iter *BlockIterator) Prev() {
 
   iter.seekToRestartPoint(iter.restartIndex)
   for iter.parseNextKey() {
-    if iter.currentOffset >= originalOffset {
+    if iter.nextOffset >= originalOffset {
       break
     }
   }

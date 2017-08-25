@@ -120,5 +120,15 @@ func TestComplexBlockIterator(t *testing.T) {
       t.Error("")
     }
   }
+
+  iter.SeekToLast()
+  cnt := 0
+  for iter.Valid() {
+    cnt++
+    iter.Prev()
+  }
+  if cnt != n {
+    t.Error("")
+  }
 }
 
